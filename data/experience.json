@@ -1,0 +1,93 @@
+{
+  "personal": {
+    "name": "John Doe",
+    "email": "johndoe@email.com",
+    "phone": "+1-555-0123",
+    "linkedin": "linkedin.com/in/johndoe",
+    "github": "github.com/johndoe",
+    "location": "San Francisco, CA"
+  },
+  "summary": "Software Engineer with 5+ years of experience building web applications and APIs. Passionate about clean code, scalable systems, and continuous learning.",
+  "skills": {
+    "languages": ["Python", "JavaScript", "TypeScript", "SQL", "Go"],
+    "frameworks": ["FastAPI", "Django", "React", "Next.js", "Node.js"],
+    "databases": ["PostgreSQL", "MongoDB", "Redis"],
+    "tools": ["Git", "Linux", "VS Code"],
+    "cloud": ["AWS EC2", "S3", "Lambda"],
+    "practices": ["Agile", "TDD", "Code Review"]
+  },
+  "experience": [
+    {
+      "id": "exp_1",
+      "title": "Software Engineer",
+      "company": "TechStartup Inc.",
+      "location": "San Francisco, CA",
+      "dates": "Jan 2022 - Present",
+      "bullets": [
+        "Developed web applications using Python and various frameworks",
+        "Worked with databases and optimized queries",
+        "Collaborated with team members on projects",
+        "Implemented REST APIs serving production traffic"
+      ]
+    },
+    {
+      "id": "exp_2",
+      "title": "Junior Developer",
+      "company": "WebAgency Co.",
+      "location": "Remote",
+      "dates": "Jun 2019 - Dec 2021",
+      "bullets": [
+        "Built responsive front-end interfaces with React and TypeScript",
+        "Participated in agile sprints and daily standups",
+        "Wrote unit tests and integration tests for key features",
+        "Contributed to CI pipeline setup using GitHub Actions"
+      ]
+    },
+    {
+      "id": "exp_3",
+      "title": "Software Engineering Intern",
+      "company": "BigCorp Ltd.",
+      "location": "New York, NY",
+      "dates": "May 2018 - Aug 2018",
+      "bullets": [
+        "Assisted senior developers with Python scripting and automation",
+        "Created internal dashboards for monitoring server health",
+        "Learned about scalable architecture patterns in production systems"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj_1",
+      "name": "E-Commerce Platform",
+      "description": "Full-stack e-commerce application with payment processing, inventory management, and admin dashboard.",
+      "tech": ["React", "Node.js", "PostgreSQL", "Stripe API"],
+      "highlights": [
+        "Handled 1000+ concurrent users with optimized database queries",
+        "Implemented real-time inventory tracking with WebSockets"
+      ]
+    },
+    {
+      "id": "proj_2",
+      "name": "Task Automation CLI",
+      "description": "Command-line tool for automating repetitive DevOps tasks.",
+      "tech": ["Python", "Click", "Docker", "AWS CLI"],
+      "highlights": [
+        "Reduced deployment time by 60% through automated scripts",
+        "Used Docker containers for consistent development environments"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "B.S. Computer Science",
+      "school": "University of California, Berkeley",
+      "dates": "2015 - 2019",
+      "gpa": "3.7/4.0"
+    }
+  ],
+  "certifications": [
+    "AWS Certified Solutions Architect - Associate",
+    "Google Professional Cloud Developer"
+  ]
+}
