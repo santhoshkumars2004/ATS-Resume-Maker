@@ -86,6 +86,25 @@ function App() {
     }
   }
 
+  const handleUploadTemplateText = async (text) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/upload-template-text`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Upload failed')
+      
+      // Refresh health to update UI state
+      checkHealth()
+      return data
+    } catch (err) {
+      setError(err.message)
+      throw err
+    }
+  }
+
   const handleReset = () => {
     setResults(null)
     setError(null)
@@ -136,7 +155,9 @@ function App() {
           <JDInput
             onOptimize={handleOptimize}
             onUploadTemplate={handleUploadTemplate}
+            onUploadTemplateText={handleUploadTemplateText}
             loading={loading}
+            health={health}
           />
         ) : (
           <ScoreDashboard

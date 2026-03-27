@@ -9,10 +9,14 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from pydantic import BaseModel
 from backend.llm.factory import get_llm_provider
 from backend.models import OptimizeRequest, OptimizeResponse
 from backend.agents.pipeline import run_pipeline
 from backend.rag.ingest import ingest_experience
+
+class TemplateTextRequest(BaseModel):
+    content: str
 
 load_dotenv()
 
@@ -146,6 +150,21 @@ async def upload_template(file: UploadFile = File(...)):
         "status": "success",
         "message": f"{file_type} resume '{file.filename}' uploaded successfully",
         "type": file_type.lower(),
+    }
+
+
+@app.post("/api/upload-template-text")
+async def upload_template_text(req: TemplateTextRequest):
+    """Upload a LaTeX template directly via text payload."""
+    global _uploaded_resume
+    
+    TEMPLATE_PATH.write_text(req.content, encoding="utf-8")
+    _uploaded_resume = {"path": str(TEMPLATE_PATH), "type": "tex"}
+    
+    return {
+        "status": "success",
+        "message": "LaTeX template saved successfully",
+        "type": "latex",
     }
 
 

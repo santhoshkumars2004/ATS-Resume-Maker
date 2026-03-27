@@ -22,14 +22,20 @@ async def compile_pdf(tex_path: str | Path, output_dir: str | Path = "output") -
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Check if tectonic is available
-    if not shutil.which("tectonic"):
+    tectonic_path = shutil.which("tectonic")
+    if not tectonic_path:
+        local_tectonic = Path("bin/tectonic.exe").resolve()
+        if local_tectonic.exists():
+            tectonic_path = str(local_tectonic)
+    
+    if not tectonic_path:
         raise RuntimeError(
-            "tectonic is not installed. Install with: brew install tectonic"
+            "tectonic is not installed. Install with: brew install tectonic or download it to the bin folder."
         )
 
     # Run tectonic
     process = await asyncio.create_subprocess_exec(
-        "tectonic",
+        tectonic_path,
         str(tex_path),
         "--outdir", str(output_dir),
         "--keep-logs",
@@ -57,4 +63,7 @@ async def compile_pdf(tex_path: str | Path, output_dir: str | Path = "output") -
 
 async def check_tectonic() -> bool:
     """Check if tectonic is installed and accessible."""
-    return shutil.which("tectonic") is not None
+    if shutil.which("tectonic"):
+        return True
+    local_tectonic = Path("bin/tectonic.exe").resolve()
+    return local_tectonic.exists()

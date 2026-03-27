@@ -43,7 +43,7 @@ def save_modified(content: str, output_path: str | Path) -> Path:
 
 
 def _replace_summary(content: str, new_summary: str) -> str:
-    """Replace the summary section content using string operations."""
+    """Replace the summary section content based on format detection."""
     begin_marker = "%%BEGIN_SUMMARY%%"
     end_marker = "%%END_SUMMARY%%"
 
@@ -51,41 +51,19 @@ def _replace_summary(content: str, new_summary: str) -> str:
     end_idx = content.find(end_marker)
     if begin_idx == -1 or end_idx == -1:
         return content
-
-    # Find the \cvitem{}{...} within the summary section
+        
     section_content = content[begin_idx:end_idx]
-    cvitem_start = section_content.find("\\cvitem{}{")
-    if cvitem_start == -1:
-        # Try with any label
-        cvitem_start = section_content.find("\\cvitem{")
-        if cvitem_start == -1:
-            return content
-
-    # Find the content inside the last pair of braces in \cvitem
-    abs_cvitem_start = begin_idx + cvitem_start
-    # Find opening brace of the content (second set of braces)
-    first_close = content.find("}", abs_cvitem_start + 8)
-    if first_close == -1:
-        return content
-    content_open = content.find("{", first_close)
-    if content_open == -1:
-        return content
-
-    # Find the matching closing brace (handle nested braces)
-    depth = 1
-    pos = content_open + 1
-    while pos < end_idx and depth > 0:
-        if content[pos] == "{":
-            depth += 1
-        elif content[pos] == "}":
-            depth -= 1
-        pos += 1
-
-    if depth == 0:
-        content_close = pos - 1
-        content = content[:content_open + 1] + new_summary + content[content_close:]
-
-    return content
+    
+    if "\\begin{onecolentry}" in section_content:
+        # Custom user format
+        new_section = f"\n\\section{{Objective}}\n\n\\begin{{onecolentry}}\n{new_summary}\n\\end{{onecolentry}}\n"
+    else:
+        # Default moderncv format
+        new_section = f"\n\\section{{Summary}}\n\\cvitem{{}}{{{new_summary}}}\n"
+        
+    before = content[:begin_idx + len(begin_marker)]
+    after = content[end_idx:]
+    return before + new_section + after
 
 
 def _replace_skills(content: str, reordered_skills: list[str], skills_to_add: list[str]) -> str:
@@ -95,30 +73,37 @@ def _replace_skills(content: str, reordered_skills: list[str], skills_to_add: li
         if skill not in all_skills:
             all_skills.append(skill)
 
-    # Build new skills section
-    categories = _categorize_skills(all_skills)
-    lines = ["\\section{Technical Skills}"]
-    for category, skills in categories.items():
-        skills_str = ", ".join(skills)
-        lines.append(f"\\cvitem{{{category}}}{{{skills_str}}}")
-
-    new_section = "\n".join(lines)
-
-    # Replace between markers using string operations
     begin_marker = "%%BEGIN_SKILLS%%"
     end_marker = "%%END_SKILLS%%"
-
     begin_idx = content.find(begin_marker)
     end_idx = content.find(end_marker)
     if begin_idx == -1 or end_idx == -1:
         return content
 
-    # Replace content between markers (keep markers)
+    section_content = content[begin_idx:end_idx]
+    categories = _categorize_skills(all_skills)
+    
+    if "\\textbf{" in section_content and "\\cvitem" not in section_content:
+        # Custom user format
+        lines = ["\n\\section{Technical Skills}"]
+        for category, skills in categories.items():
+            skills_str = ", ".join(skills)
+            # Ensure any ampersands in LLM strings are escaped for LaTeX
+            skills_str = skills_str.replace("\\&", "&").replace("&", "\\&")
+            clean_category = category.replace("\\&", "&").replace("&", "\\&")
+            lines.append(f"\\textbf{{{clean_category}:}} {skills_str} \\\\")
+        new_section = "\n".join(lines) + "\n"
+    else:
+        # Default moderncv format
+        lines = ["\n\\section{Technical Skills}"]
+        for category, skills in categories.items():
+            skills_str = ", ".join(skills)
+            lines.append(f"\\cvitem{{{category}}}{{{skills_str}}}")
+        new_section = "\n".join(lines) + "\n"
+
     before = content[:begin_idx + len(begin_marker)]
     after = content[end_idx:]
-    content = before + "\n" + new_section + "\n" + after
-
-    return content
+    return before + new_section + after
 
 
 def _categorize_skills(skills: list[str]) -> dict[str, list[str]]:

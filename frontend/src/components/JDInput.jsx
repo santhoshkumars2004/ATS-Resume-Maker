@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react'
 
-function JDInput({ onOptimize, onUploadTemplate, loading }) {
+function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, health }) {
   const [jobDescription, setJobDescription] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [templateUploaded, setTemplateUploaded] = useState(false)
   const [uploadStatus, setUploadStatus] = useState('')
+  const [inputMode, setInputMode] = useState('file')
+  const [latexText, setLatexText] = useState('')
   const fileInputRef = useRef(null)
 
   const handleSubmit = (e) => {
@@ -23,6 +25,20 @@ function JDInput({ onOptimize, onUploadTemplate, loading }) {
       await onUploadTemplate(file)
       setTemplateUploaded(true)
       setUploadStatus(`✅ ${file.name} uploaded successfully`)
+    } catch {
+      setUploadStatus('❌ Upload failed')
+    }
+  }
+
+  const handleTextUpload = async () => {
+    if (!latexText.trim()) return
+    setUploadStatus('Saving template...')
+    try {
+      if (onUploadTemplateText) {
+        await onUploadTemplateText(latexText)
+        setTemplateUploaded(true)
+        setUploadStatus('✅ LaTeX template saved successfully')
+      }
     } catch {
       setUploadStatus('❌ Upload failed')
     }
@@ -76,35 +92,100 @@ function JDInput({ onOptimize, onUploadTemplate, loading }) {
 
         {/* Template Upload */}
         <div className="form-group">
-          <label className="form-label">📄 Upload Your Resume</label>
-          <div
-            className={`upload-zone ${templateUploaded ? 'active' : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            aria-label="Upload resume PDF or LaTeX template"
-            onKeyDown={(e) => { if (e.key === 'Enter') fileInputRef.current?.click() }}
-          >
-            <div className="upload-icon" aria-hidden="true">
-              {templateUploaded ? '✅' : '📎'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+            <label className="form-label" style={{ marginBottom: 0 }}>📄 Your Resume Template</label>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button 
+                type="button" 
+                onClick={() => setInputMode('file')}
+                style={{ fontSize: 'var(--text-xs)', padding: '2px 8px', borderRadius: '4px', background: inputMode === 'file' ? 'var(--bg-elevated)' : 'transparent', border: '1px solid var(--border-color)', color: inputMode === 'file' ? 'var(--text-primary)' : 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                File Upload
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setInputMode('paste')}
+                style={{ fontSize: 'var(--text-xs)', padding: '2px 8px', borderRadius: '4px', background: inputMode === 'paste' ? 'var(--bg-elevated)' : 'transparent', border: '1px solid var(--border-color)', color: inputMode === 'paste' ? 'var(--text-primary)' : 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                Paste LaTeX
+              </button>
             </div>
-            <p className="upload-text">
-              {uploadStatus || (
-                <>Click to upload your resume (<strong>.pdf</strong> or <strong>.tex</strong>)</>
-              )}
-            </p>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
-              Your resume will be analyzed and optimized for the job description
-            </p>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.tex"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-            aria-hidden="true"
-          />
+
+          {health?.template_loaded && !templateUploaded && (
+            <div style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid var(--accent-light)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--accent-light)', fontWeight: 'bold' }}>✓ Template loaded on server</span>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>Resume is loaded. You can click optimize!</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTemplateUploaded(true)}
+                className="btn btn-secondary"
+                style={{ padding: '4px 12px', fontSize: 'var(--text-xs)' }}
+              >
+                Use Last Used LaTeX
+              </button>
+            </div>
+          )}
+
+          {inputMode === 'file' ? (
+            <>
+              <div
+                className={`upload-zone ${templateUploaded ? 'active' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                aria-label="Upload resume PDF or LaTeX template"
+                onKeyDown={(e) => { if (e.key === 'Enter') fileInputRef.current?.click() }}
+              >
+                <div className="upload-icon" aria-hidden="true">
+                  {templateUploaded ? '✅' : '📎'}
+                </div>
+                <p className="upload-text">
+                  {uploadStatus || (
+                    <>Click to upload your resume (<strong>.pdf</strong> or <strong>.tex</strong>)</>
+                  )}
+                </p>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+                  Your resume will be analyzed and optimized for the job description
+                </p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.tex"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                aria-hidden="true"
+              />
+            </>
+          ) : (
+            <div className="paste-zone">
+              <textarea
+                className="form-textarea"
+                placeholder="% Paste your complete LaTeX (.tex) code here...&#10;% Don't forget %%BEGIN_SUMMARY%% tags!"
+                value={latexText}
+                onChange={(e) => setLatexText(e.target.value)}
+                rows={8}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)' }}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ width: '100%' }}
+                onClick={handleTextUpload}
+                disabled={!latexText.trim() || templateUploaded}
+              >
+                {templateUploaded ? '✅ Saved successfully' : 'Save Text Template'}
+              </button>
+              {uploadStatus && inputMode === 'paste' && (
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-light)', marginTop: 'var(--space-2)', textAlign: 'center' }}>
+                  {uploadStatus}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Submit Button */}

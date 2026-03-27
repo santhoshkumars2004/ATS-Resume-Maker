@@ -35,11 +35,18 @@ class OllamaProvider(LLMProvider):
         if response_format == "json":
             payload["format"] = "json"
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        import time
+        start_time = time.time()
+        print(f"   [LLM] Sending request to local Ollama ({self.model})... (This may take several minutes on CPU)")
+        
+        # We set timeout=None because local inference on large models can take a very long time
+        async with httpx.AsyncClient(timeout=None) as client:
             resp = await client.post(f"{self.base_url}/api/generate", json=payload)
             resp.raise_for_status()
             data = resp.json()
 
+        elapsed = time.time() - start_time
+        print(f"   [LLM] Ollama responded successfully in {elapsed:.1f} seconds.")
         content = data.get("response", "")
 
         if response_format == "json":
