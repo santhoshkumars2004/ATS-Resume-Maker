@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, health }) {
   const [jobDescription, setJobDescription] = useState('')
@@ -7,13 +7,32 @@ function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, 
   const [uploadStatus, setUploadStatus] = useState('')
   const [inputMode, setInputMode] = useState('file')
   const [latexText, setLatexText] = useState('')
+  const [selectedProvider, setSelectedProvider] = useState('')
+  const [selectedModel, setSelectedModel] = useState('')
   const fileInputRef = useRef(null)
+  const providerOptions = health?.available_providers || []
+  const activeProvider = providerOptions.find((option) => option.id === selectedProvider)
+  const supportedModels = activeProvider?.supported_models || []
+  const selectedModelIsPreset = supportedModels.some((option) => option.value === selectedModel)
+  const modelSelectValue = selectedModelIsPreset ? selectedModel : (activeProvider?.supports_custom_model ? '__custom__' : (selectedModel || ''))
+
+  useEffect(() => {
+    if (!providerOptions.length || selectedProvider) return
+
+    const preferredProvider =
+      providerOptions.find((option) => option.id === health?.default_provider && option.available)
+      || providerOptions.find((option) => option.available)
+      || providerOptions[0]
+
+    setSelectedProvider(preferredProvider.id)
+    setSelectedModel(preferredProvider.supports_model_override ? (preferredProvider.default_model || '') : '')
+  }, [health?.default_provider, providerOptions, selectedProvider])
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (jobDescription.trim().length < 50) return
     if (!companyName.trim()) return
-    onOptimize(jobDescription, companyName)
+    onOptimize(jobDescription, companyName, selectedProvider, selectedModel)
   }
 
   const handleFileChange = async (e) => {
@@ -22,11 +41,11 @@ function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, 
 
     setUploadStatus('Uploading...')
     try {
-      await onUploadTemplate(file)
+      const result = await onUploadTemplate(file)
       setTemplateUploaded(true)
-      setUploadStatus(`✅ ${file.name} uploaded successfully`)
-    } catch {
-      setUploadStatus('❌ Upload failed')
+      setUploadStatus(`✅ ${result.message || `${file.name} uploaded successfully`}`)
+    } catch (err) {
+      setUploadStatus(`❌ ${err.message || 'Upload failed'}`)
     }
   }
 
@@ -35,20 +54,124 @@ function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, 
     setUploadStatus('Saving template...')
     try {
       if (onUploadTemplateText) {
-        await onUploadTemplateText(latexText)
+        const result = await onUploadTemplateText(latexText)
         setTemplateUploaded(true)
-        setUploadStatus('✅ LaTeX template saved successfully')
+        setUploadStatus(`✅ ${result.message || 'LaTeX template saved successfully'}`)
       }
-    } catch {
-      setUploadStatus('❌ Upload failed')
+    } catch (err) {
+      setUploadStatus(`❌ ${err.message || 'Upload failed'}`)
     }
   }
 
   const canSubmit = jobDescription.trim().length >= 50 && companyName.trim() && !loading
+  const canSaveText = Boolean(latexText.trim())
+
+  const handleProviderChange = (e) => {
+    const nextProviderId = e.target.value
+    const nextProvider = providerOptions.find((option) => option.id === nextProviderId)
+
+    setSelectedProvider(nextProviderId)
+    setSelectedModel(nextProvider?.supports_model_override ? (nextProvider.default_model || '') : '')
+  }
+
+  const handleModelSelectChange = (e) => {
+    const nextValue = e.target.value
+    if (nextValue === '__custom__') {
+      setSelectedModel('')
+      return
+    }
+
+    setSelectedModel(nextValue)
+  }
 
   return (
     <section className="jd-input-section">
       <form onSubmit={handleSubmit}>
+        {/* Model Provider */}
+        <div className="form-group">
+          <label htmlFor="provider-select" className="form-label">
+            🤖 AI Backend
+          </label>
+          <select
+            id="provider-select"
+            className="form-input"
+            value={selectedProvider}
+            onChange={handleProviderChange}
+            disabled={!providerOptions.length || loading}
+          >
+            {providerOptions.map((option) => (
+              <option key={option.id} value={option.id} disabled={!option.available}>
+                {option.label}{option.available ? '' : ' (unavailable)'}
+              </option>
+            ))}
+          </select>
+          {health?.status !== 'healthy' && health?.connection_error && (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+              Backend is disconnected. You can still choose a provider, but save and optimize will work only after FastAPI reconnects.
+            </p>
+          )}
+          {activeProvider?.reason && !activeProvider.available && (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--danger)', marginTop: 'var(--space-2)' }}>
+              {activeProvider.reason}
+            </p>
+          )}
+        </div>
+
+        {activeProvider?.supports_model_override && (
+          <div className="form-group">
+            <label htmlFor="model-name" className="form-label">
+              🧠 Model
+            </label>
+            {supportedModels.length > 0 ? (
+              <select
+                id="model-name"
+                className="form-input"
+                value={modelSelectValue}
+                onChange={handleModelSelectChange}
+                disabled={loading}
+              >
+                {supportedModels.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+                {activeProvider?.supports_custom_model && (
+                  <option value="__custom__">Custom model</option>
+                )}
+              </select>
+            ) : (
+              <input
+                id="model-name"
+                type="text"
+                className="form-input"
+                placeholder={activeProvider.default_model || 'Leave blank to use the default model'}
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+              />
+            )}
+            {activeProvider?.supports_custom_model && modelSelectValue === '__custom__' && (
+              <input
+                type="text"
+                className="form-input"
+                style={{ marginTop: 'var(--space-2)' }}
+                placeholder="Enter your Ollama model name"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+              />
+            )}
+            {selectedProvider === 'codex' && (
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+                Codex is now the default backend. If your login rejects a selected model, the backend will fall back to <code>gpt-5-codex</code>.
+              </p>
+            )}
+            {selectedProvider === 'copilot' && (
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+                Copilot model selection is sent as a best-effort CLI flag. If your local CLI ignores it, Copilot will use its own local default.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Company Name */}
         <div className="form-group">
           <label htmlFor="company-name" className="form-label">
@@ -166,7 +289,9 @@ function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, 
                 className="form-textarea"
                 placeholder="% Paste your complete LaTeX (.tex) code here...&#10;% Don't forget %%BEGIN_SUMMARY%% tags!"
                 value={latexText}
-                onChange={(e) => setLatexText(e.target.value)}
+                onChange={(e) => {
+                  setLatexText(e.target.value)
+                }}
                 rows={8}
                 style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)' }}
               />
@@ -175,9 +300,9 @@ function JDInput({ onOptimize, onUploadTemplate, onUploadTemplateText, loading, 
                 className="btn btn-secondary"
                 style={{ width: '100%' }}
                 onClick={handleTextUpload}
-                disabled={!latexText.trim() || templateUploaded}
+                disabled={!canSaveText}
               >
-                {templateUploaded ? '✅ Saved successfully' : 'Save Text Template'}
+                {templateUploaded ? 'Update Text Template' : 'Save Text Template'}
               </button>
               {uploadStatus && inputMode === 'paste' && (
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-light)', marginTop: 'var(--space-2)', textAlign: 'center' }}>

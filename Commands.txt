@@ -1,7 +1,9 @@
 For backend :
 
-$env:PYTHONIOENCODING="utf-8"; python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+PYTHONIOENCODING=utf-8 python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+
+If port 8000 is already in use, stop the existing backend first or use a different port.
 
 For frontend :
 
-cmd.exe /c "npm run dev"
+npm run dev

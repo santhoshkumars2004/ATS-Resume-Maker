@@ -1,20 +1,32 @@
 """RAG retriever — queries ChromaDB or in-memory store for relevant experience."""
 from backend.models import JDAnalysis
+from backend.logging_utils import log_event
 from backend.rag.store import is_available, get_collection
 
 
 async def retrieve_relevant_experience(
     jd_analysis: JDAnalysis,
     top_k: int = 5,
+    run_id: str | None = None,
 ) -> str:
     """Retrieve the most relevant experience for a given job description.
 
     Uses ChromaDB if available, otherwise falls back to keyword matching.
     """
-    if is_available():
-        return _retrieve_chromadb(jd_analysis, top_k)
-    else:
-        return _retrieve_memory(jd_analysis, top_k)
+    mode = "chromadb" if is_available() else "memory"
+    if run_id:
+        log_event(run_id, "RAG", f"starting retrieval | mode={mode} top_k={top_k}")
+
+    result = _retrieve_chromadb(jd_analysis, top_k) if is_available() else _retrieve_memory(jd_analysis, top_k)
+
+    if run_id:
+        snippet_count = result.count("•")
+        if result:
+            log_event(run_id, "RAG", f"retrieved {snippet_count} relevant snippets")
+        else:
+            log_event(run_id, "RAG", "no relevant experience matched the job description")
+
+    return result
 
 
 def _retrieve_chromadb(jd_analysis: JDAnalysis, top_k: int) -> str:
