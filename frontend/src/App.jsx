@@ -571,21 +571,45 @@ function App() {
         ) : (
           <>
             <section className="glass-card user-toolbar">
-              <div>
+              <div className="user-toolbar-copy">
                 <p className="user-toolbar-label">Workspace</p>
                 <h2 className="user-toolbar-title">{authUser.name}&rsquo;s saved resume workspace</h2>
                 <p className="user-toolbar-subtitle">
                   Your template, optimized resumes, and approved review changes are stored under your account.
                 </p>
+                <div className="user-toolbar-identity" aria-label="Account details">
+                  {authUser.email && (
+                    <span className="user-toolbar-chip">{authUser.email}</span>
+                  )}
+                  <span className="user-toolbar-chip">
+                    {health?.status === 'healthy' ? 'Workspace synced' : 'Backend offline'}
+                  </span>
+                </div>
               </div>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleLogout}
-                disabled={authLoading}
-              >
-                {authLoading ? 'Signing out...' : 'Sign out'}
-              </button>
+              <div className="user-toolbar-stats" aria-label="Workspace summary">
+                <div className="user-toolbar-stat">
+                  <span className="user-toolbar-stat-label">Saved runs</span>
+                  <strong className="user-toolbar-stat-value">{historyItems.length}</strong>
+                </div>
+                <div className="user-toolbar-stat">
+                  <span className="user-toolbar-stat-label">Template</span>
+                  <strong className="user-toolbar-stat-value">{health?.template_loaded ? 'Ready' : 'Missing'}</strong>
+                </div>
+                <div className="user-toolbar-stat">
+                  <span className="user-toolbar-stat-label">Default AI</span>
+                  <strong className="user-toolbar-stat-value">{health?.default_provider || health?.llm_provider || 'Unknown'}</strong>
+                </div>
+              </div>
+              <div className="user-toolbar-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleLogout}
+                  disabled={authLoading}
+                >
+                  {authLoading ? 'Signing out...' : 'Sign out'}
+                </button>
+              </div>
             </section>
 
             <div className="workspace-shell">

@@ -11,18 +11,28 @@ function formatWhen(value) {
 }
 
 function HistoryPanel({ items, loading, activeId, onOpen, onDelete, deletingId }) {
+  const draftCount = items.filter((item) => !item.review_applied).length
+  const finalCount = items.length - draftCount
+
   return (
     <section className="glass-card history-panel" aria-label="Saved optimization history">
       <div className="history-panel-header">
         <div>
           <span className="history-eyebrow">Saved runs</span>
           <h2 className="history-title">Optimization history</h2>
+          <p className="history-summary">
+            {finalCount} final {finalCount === 1 ? 'version' : 'versions'} · {draftCount} draft {draftCount === 1 ? 'run' : 'runs'}
+          </p>
+          <div className="history-summary-row" aria-label="History breakdown">
+            <span className="history-summary-pill history-summary-pill--final">{finalCount} final</span>
+            <span className="history-summary-pill history-summary-pill--draft">{draftCount} draft</span>
+          </div>
         </div>
         <span className="history-count">{items.length}</span>
       </div>
 
       <p className="history-subtitle">
-        Open any previous run to review its ATS score, applied changes, and downloadable result.
+        Open any previous run to review its ATS score, applied changes, and downloadable result. Delete drafts you do not want to keep.
       </p>
 
       {loading ? (
